@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.0.3</version>
+    <version>4.1.1</version>
     <relativePath/>
   </parent>
   <groupId>tech.wenisch</groupId>
@@ -15,9 +15,9 @@
   <description>Expose mounted filesystems through web, WebDAV, SFTP, FTP and S3 interfaces</description>
   <properties>
     <java.version>25</java.version>
-    <mina-sshd.version>2.17.1</mina-sshd.version>
+    <mina-sshd.version>2.19.0</mina-sshd.version>
     <ftpserver.version>1.2.1</ftpserver.version>
-    <native-build-tools.version>0.11.4</native-build-tools.version>
+    <native-build-tools.version>1.1.14</native-build-tools.version>
   </properties>
   <dependencies>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
@@ -37,10 +37,41 @@
     <plugins>
       <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><executions><execution><goals><goal>build-info</goal></goals></execution></executions></plugin>
       <plugin><groupId>org.graalvm.buildtools</groupId><artifactId>native-maven-plugin</artifactId><version>${native-build-tools.version}</version></plugin>
-      <plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.14</version><executions><execution><goals><goal>prepare-agent</goal></goals></execution><execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution></executions></plugin>
+      <plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.15</version><executions><execution><goals><goal>prepare-agent</goal></goals></execution><execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution></executions></plugin>
     </plugins>
   </build>
   <profiles>
-    <profile><id>native</id><build><plugins><plugin><groupId>org.graalvm.buildtools</groupId><artifactId>native-maven-plugin</artifactId><configuration><imageName>adapterfs</imageName><fallback>false</fallback></configuration><executions><execution><goals><goal>compile-no-fork</goal></goals><phase>package</phase></execution></executions></plugin></plugins></build></profile>
+    <profile>
+      <id>native</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>process-aot</id>
+                <goals><goal>process-aot</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <version>${native-build-tools.version}</version>
+            <configuration>
+              <imageName>adapterfs</imageName>
+            </configuration>
+            <executions>
+              <execution>
+                <id>build-native</id>
+                <phase>package</phase>
+                <goals><goal>compile-no-fork</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 </project>

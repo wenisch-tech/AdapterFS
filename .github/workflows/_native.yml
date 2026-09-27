@@ -1,29 +1,76 @@
 name: Native image
-on: {workflow_call: {}}
+
+on:
+  workflow_call: {}
+
 jobs:
   native:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - if: github.event_name == 'push'
-        uses: docker/login-action@v3
-        with: {registry: ghcr.io, username: '${{ github.actor }}', password: '${{ secrets.GITHUB_TOKEN }}'}
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build native image locally for validation
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile-native
           platforms: linux/amd64
           load: true
-          push: ${{ github.event_name == 'push' }}
-          tags: ghcr.io/wenisch-tech/adapterfs:native-${{ github.sha }},ghcr.io/wenisch-tech/adapterfs:native-latest
-      - name: Native protocol smoke tests
-        run: ./scripts/check-protocols.sh ghcr.io/wenisch-tech/adapterfs:native-${{ github.sha }}
+          tags: adapterfs:native-ci-${{ github.sha }}
+          build-args: |
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            BUILD_REVISION=${{ github.sha }}
+      - name: Validate native container protocols
+        run: ./scripts/check-protocols.sh adapterfs:native-ci-${{ github.sha }}
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@v0.3.1
+      - name: Scan native image with Trivy
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          image=adapterfs:native-ci-${{ github.sha }}
+          status=1
+          for attempt in 1 2 3; do
+            trivy image --format table --output trivy-native-report.txt --scanners vuln --vuln-type os,library --severity CRITICAL,HIGH,MEDIUM "$image"
+            status=$?
+            [ "$status" -eq 0 ] && break
+            sleep 10
+          done
+          if [ ! -s trivy-native-report.txt ]; then
+            printf 'Trivy scan could not complete after retries.\nImage: %s\nExit status: %s\n' "$image" "$status" > trivy-native-report.txt
+          fi
+          exit 0
+      - name: Upload native Trivy report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: trivy-native-${{ github.run_id }}
+          path: trivy-native-report.txt
       - name: Extract native executable
         run: |
-          id=$(docker create ghcr.io/wenisch-tech/adapterfs:native-${{ github.sha }})
+          id=$(docker create adapterfs:native-ci-${{ github.sha }})
           docker cp "$id:/app/adapterfs" adapterfs-linux-amd64
           docker rm "$id"
           chmod +x adapterfs-linux-amd64
-      - uses: actions/upload-artifact@v4
-        with: {name: adapterfs-native-linux-amd64, path: adapterfs-linux-amd64}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: adapterfs-native-linux-amd64
+          path: adapterfs-linux-amd64
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Publish native image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=adapterfs:native-ci-${{ github.sha }}
+          for tag in native-${{ github.sha }} native-latest native-main; do
+            docker tag "$source" "ghcr.io/wenisch-tech/adapterfs:$tag"
+            docker push "ghcr.io/wenisch-tech/adapterfs:$tag"
+          done

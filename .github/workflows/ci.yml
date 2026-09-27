@@ -7,24 +7,47 @@ on:
     branches: ['**']
 permissions:
   contents: read
-  packages: write
-  id-token: write
-  attestations: write
 jobs:
+  versioning:
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag_version.outputs.new_tag }}
+      version: ${{ steps.tag_version.outputs.new_version }}
+      changelog: ${{ steps.tag_version.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Bump version and generate changelog
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v7
+        with:
+          github_token: ${{ github.token }}
+          release_branches: main
+          default_bump: patch
+          dry_run: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
   test:
+    needs: versioning
     uses: ./.github/workflows/_test.yml
   image:
-    needs: test
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    needs: [versioning, test]
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')
     uses: ./.github/workflows/_image.yml
     permissions: {contents: read, packages: write, id-token: write, attestations: write}
   native:
-    needs: test
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    needs: [versioning, test]
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')
     uses: ./.github/workflows/_native.yml
     permissions: {contents: read, packages: write}
   release:
-    needs: [test, image, native]
+    needs: [versioning, test, image, native]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip ci]')
     uses: ./.github/workflows/_release.yml
+    with:
+      version: ${{ needs.versioning.outputs.version }}
+      tag: ${{ needs.versioning.outputs.tag }}
+      changelog: ${{ needs.versioning.outputs.changelog }}
     permissions: {contents: write, packages: write, id-token: write}
