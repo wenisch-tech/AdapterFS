@@ -199,7 +199,7 @@ npx playwright install chromium
 ADAPTERFS_BASE_URL=http://localhost:8080 ADAPTERFS_USERNAME=admin ADAPTERFS_PASSWORD=... npm run record-demo
 ```
 
-GitHub Actions test every change, build amd64/arm64 JVM images and an amd64 native image, run blocking protocol smoke tests, generate SBOM/provenance artifacts, and publish the chart to `oci://ghcr.io/wenisch-tech/helm-charts/adapterfs`. The workflow needs repository `contents: write`, `packages: write`, `id-token: write`, and `attestations: write`; organization package creation must permit this repository.
+GitHub Actions test every change, build amd64/arm64 JVM images, run blocking protocol smoke tests and Trivy scans, generate SBOM/provenance artifacts, and publish the chart to `oci://ghcr.io/wenisch-tech/helm-charts/adapterfs`. The native profile and Dockerfile remain available for manual builds but are not part of the CI or release workflow. The workflow needs repository `contents: write`, `packages: write`, `id-token: write`, and `attestations: write`; organization package creation must permit this repository.
 
 ## License
 

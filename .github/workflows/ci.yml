@@ -37,13 +37,8 @@ jobs:
     if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')
     uses: ./.github/workflows/_image.yml
     permissions: {contents: read, packages: write, id-token: write, attestations: write}
-  native:
-    needs: [versioning, test]
-    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')
-    uses: ./.github/workflows/_native.yml
-    permissions: {contents: read, packages: write}
   release:
-    needs: [versioning, test, image, native]
+    needs: [versioning, test, image]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip ci]')
     uses: ./.github/workflows/_release.yml
     with:

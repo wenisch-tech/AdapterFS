@@ -18,7 +18,9 @@ mkdir -p "$work_dir/files" "$work_dir/state"
 # otherwise prevents that non-root user from traversing the mounted paths.
 chmod 0777 "$work_dir" "$work_dir/files" "$work_dir/state"
 printf 'protocol smoke test\n' > "$work_dir/files/hello.txt"
-docker run -d --name adapterfs-smoke -p 18080:8080 -p 19000:9000 -p 12222:2222 -p 12121:2121 -p 30000-30009:30000-30009 -e ADAPTERFS_FTP_ENABLED=true -e ADAPTERFS_AUTH_USERNAME=test -e ADAPTERFS_AUTH_PASSWORD=test-password -e ADAPTERFS_AUTH_S3_ACCESS_KEY=AFSTEST -e ADAPTERFS_AUTH_S3_SECRET_KEY=test-secret -v "$work_dir/files:/data" -v "$work_dir/state:/var/lib/adapterfs" "$image"
+# Match the host user for mounted test state so cleanup works on developer
+# machines and GitHub runners. The production image still runs as UID 65532.
+docker run -d --name adapterfs-smoke --user "$(id -u):$(id -g)" -p 18080:8080 -p 19000:9000 -p 12222:2222 -p 12121:2121 -p 30000-30009:30000-30009 -e ADAPTERFS_FTP_ENABLED=true -e ADAPTERFS_AUTH_USERNAME=test -e ADAPTERFS_AUTH_PASSWORD=test-password -e ADAPTERFS_AUTH_S3_ACCESS_KEY=AFSTEST -e ADAPTERFS_AUTH_S3_SECRET_KEY=test-secret -v "$work_dir/files:/data" -v "$work_dir/state:/var/lib/adapterfs" "$image"
 ready=false
 for attempt in $(seq 1 60); do
   if curl -fsS http://127.0.0.1:18080/actuator/health >/dev/null 2>&1; then ready=true; break; fi
