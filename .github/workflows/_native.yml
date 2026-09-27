@@ -1,0 +1,29 @@
+name: Native image
+on: {workflow_call: {}}
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with: {registry: ghcr.io, username: '${{ github.actor }}', password: '${{ secrets.GITHUB_TOKEN }}'}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-native
+          platforms: linux/amd64
+          load: true
+          push: ${{ github.event_name == 'push' }}
+          tags: ghcr.io/wenisch-tech/adapterfs:native-${{ github.sha }},ghcr.io/wenisch-tech/adapterfs:native-latest
+      - name: Native protocol smoke tests
+        run: ./scripts/check-protocols.sh ghcr.io/wenisch-tech/adapterfs:native-${{ github.sha }}
+      - name: Extract native executable
+        run: |
+          id=$(docker create ghcr.io/wenisch-tech/adapterfs:native-${{ github.sha }})
+          docker cp "$id:/app/adapterfs" adapterfs-linux-amd64
+          docker rm "$id"
+          chmod +x adapterfs-linux-amd64
+      - uses: actions/upload-artifact@v4
+        with: {name: adapterfs-native-linux-amd64, path: adapterfs-linux-amd64}

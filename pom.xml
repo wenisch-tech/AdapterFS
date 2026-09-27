@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.3</version>
+    <relativePath/>
+  </parent>
+  <groupId>tech.wenisch</groupId>
+  <artifactId>adapterfs</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>AdapterFS</name>
+  <description>Expose mounted filesystems through web, WebDAV, SFTP, FTP and S3 interfaces</description>
+  <properties>
+    <java.version>25</java.version>
+    <mina-sshd.version>2.17.1</mina-sshd.version>
+    <ftpserver.version>1.2.1</ftpserver.version>
+    <native-build-tools.version>0.11.4</native-build-tools.version>
+  </properties>
+  <dependencies>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-thymeleaf</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-oauth2-client</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
+    <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId></dependency>
+    <dependency><groupId>org.apache.sshd</groupId><artifactId>sshd-sftp</artifactId><version>${mina-sshd.version}</version></dependency>
+    <dependency><groupId>org.apache.ftpserver</groupId><artifactId>ftpserver-core</artifactId><version>${ftpserver.version}</version></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-configuration-processor</artifactId><optional>true</optional></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>
+  </dependencies>
+  <build>
+    <finalName>adapterfs</finalName>
+    <plugins>
+      <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><executions><execution><goals><goal>build-info</goal></goals></execution></executions></plugin>
+      <plugin><groupId>org.graalvm.buildtools</groupId><artifactId>native-maven-plugin</artifactId><version>${native-build-tools.version}</version></plugin>
+      <plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.14</version><executions><execution><goals><goal>prepare-agent</goal></goals></execution><execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution></executions></plugin>
+    </plugins>
+  </build>
+  <profiles>
+    <profile><id>native</id><build><plugins><plugin><groupId>org.graalvm.buildtools</groupId><artifactId>native-maven-plugin</artifactId><configuration><imageName>adapterfs</imageName><fallback>false</fallback></configuration><executions><execution><goals><goal>compile-no-fork</goal></goals><phase>package</phase></execution></executions></plugin></plugins></build></profile>
+  </profiles>
+</project>

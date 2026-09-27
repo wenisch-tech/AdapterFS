@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: adapterfs
+  servlet:
+    multipart:
+      max-file-size: ${ADAPTERFS_MAX_FILE_SIZE:10GB}
+      max-request-size: ${ADAPTERFS_MAX_FILE_SIZE:10GB}
+  thymeleaf:
+    cache: true
+server:
+  port: ${ADAPTERFS_HTTP_PORT:8080}
+  forward-headers-strategy: framework
+management:
+  endpoints.web.exposure.include: health,info,prometheus
+  endpoint.health.probes.enabled: true
+adapterfs:
+  state-directory: ${ADAPTERFS_STATE_DIRECTORY:/var/lib/adapterfs}
+  exports:
+    - name: ${ADAPTERFS_EXPORT_NAME:files}
+      path: ${ADAPTERFS_EXPORT_PATH:/data}
+      read-only: ${ADAPTERFS_EXPORT_READ_ONLY:false}
+  sftp:
+    enabled: ${ADAPTERFS_SFTP_ENABLED:true}
+    port: ${ADAPTERFS_SFTP_PORT:2222}
+  ftp:
+    enabled: ${ADAPTERFS_FTP_ENABLED:false}
+    port: ${ADAPTERFS_FTP_PORT:2121}
+    passive-ports: ${ADAPTERFS_FTP_PASSIVE_PORTS:30000-30009}
+    external-address: ${ADAPTERFS_FTP_EXTERNAL_ADDRESS:}
+    tls-enabled: ${ADAPTERFS_FTP_TLS_ENABLED:false}
+    tls-keystore: ${ADAPTERFS_FTP_TLS_KEYSTORE:}
+    tls-keystore-password: ${ADAPTERFS_FTP_TLS_KEYSTORE_PASSWORD:}
+  s3:
+    enabled: ${ADAPTERFS_S3_ENABLED:true}
+    port: ${ADAPTERFS_S3_PORT:9000}

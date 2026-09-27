@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1.7
+FROM ghcr.io/graalvm/native-image-community:25 AS builder
+WORKDIR /workspace
+COPY .mvn .mvn
+COPY mvnw pom.xml ./
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -Pnative -DskipTests dependency:go-offline
+COPY src src
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -Pnative -DskipTests native:compile
+
+FROM cgr.dev/chainguard/glibc-dynamic:latest
+WORKDIR /app
+ARG BUILD_DATE
+ARG BUILD_VERSION=dev
+ARG BUILD_REVISION
+LABEL org.opencontainers.image.title="AdapterFS Native" \
+      org.opencontainers.image.source="https://github.com/wenisch-tech/AdapterFS" \
+      org.opencontainers.image.licenses="AGPL-3.0" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.revision="${BUILD_REVISION}" \
+      org.opencontainers.image.created="${BUILD_DATE}"
+COPY --from=builder --chown=65532:65532 /workspace/target/adapterfs /app/adapterfs
+COPY --chown=65532:65532 docker/state/ /var/lib/adapterfs/
+EXPOSE 8080 9000 2222 2121 30000-30009
+ENTRYPOINT ["/app/adapterfs"]

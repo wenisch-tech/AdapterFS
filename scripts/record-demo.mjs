@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+import { mkdir, rm } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+const base=process.env.ADAPTERFS_BASE_URL||'http://127.0.0.1:18080';
+const user=process.env.ADAPTERFS_USERNAME||'admin', password=process.env.ADAPTERFS_PASSWORD||'adapterfs-demo';
+const videoDir='target/demo-video';await rm(videoDir,{recursive:true,force:true});await mkdir(videoDir,{recursive:true});await mkdir('docs',{recursive:true});
+const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1280,height:800},recordVideo:{dir:videoDir,size:{width:1280,height:800}}});const page=await context.newPage();
+await page.goto(base+'/login');await page.getByLabel('Username').fill(user);await page.getByLabel('Password').fill(password);await page.waitForTimeout(600);await page.getByRole('button',{name:'Sign in'}).click();await page.waitForTimeout(1600);
+await page.getByText('Reports',{exact:true}).click();await page.waitForTimeout(1300);await page.getByRole('button',{name:'files',exact:true}).click();await page.waitForTimeout(1100);await page.getByPlaceholder('Filter files').fill('read');await page.waitForTimeout(1000);await page.getByPlaceholder('Filter files').fill('');await page.getByRole('button',{name:'Connections'}).click();await page.waitForTimeout(1800);await page.keyboard.press('Escape');await page.getByRole('button',{name:'Appearance'}).click();await page.waitForTimeout(1300);
+const video=page.video();await context.close();const path=await video.path();await browser.close();
+const result=spawnSync('ffmpeg',['-y','-i',path,'-vf','fps=10,scale=960:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4','-loop','0','docs/adapterfs-demo.gif'],{stdio:'inherit'});if(result.status)process.exit(result.status);

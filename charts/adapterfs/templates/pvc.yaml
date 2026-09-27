@@ -1,0 +1,15 @@
+{{- if and .Values.deployment.enabled .Values.state.persistence (not .Values.state.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "adapterfs.fullname" . }}
+  labels: {{ include "adapterfs.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ .Values.state.size }}
+  {{- with .Values.state.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+{{- end }}

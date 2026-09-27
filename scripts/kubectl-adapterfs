@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Attach AdapterFS to an existing pod as an ephemeral container."""
+import argparse, base64, json, secrets, subprocess, sys, urllib.request
+
+def kubectl(args, stdin=None):
+    result = subprocess.run(["kubectl", *args], input=stdin, text=True, capture_output=True)
+    if result.returncode:
+        print(result.stderr.strip(), file=sys.stderr); raise SystemExit(result.returncode)
+    return result.stdout
+
+def main():
+    parser=argparse.ArgumentParser(prog="kubectl-adapterfs")
+    parser.add_argument("pod"); parser.add_argument("--namespace","-n",default="default")
+    parser.add_argument("--mount",action="append",required=True,metavar="VOLUME:EXPORT[:ro]",help="existing pod volume and exported name")
+    parser.add_argument("--image",default="ghcr.io/wenisch-tech/adapterfs:latest")
+    parser.add_argument("--uid",type=int,default=65532); parser.add_argument("--gid",type=int,default=65532)
+    parser.add_argument("--duration",type=int,default=3600,help="session seconds (default: 3600)")
+    parser.add_argument("--http-port",type=int,default=8080); parser.add_argument("--s3-port",type=int,default=9000); parser.add_argument("--sftp-port",type=int,default=2222)
+    parser.add_argument("--name",default="adapterfs")
+    options=parser.parse_args()
+    allowed=kubectl(["auth","can-i","update","pods/ephemeralcontainers","-n",options.namespace]).strip()
+    if allowed!="yes": raise SystemExit("Current identity cannot update pods/ephemeralcontainers in this namespace")
+    pod=json.loads(kubectl(["get","pod",options.pod,"-n",options.namespace,"-o","json"]))
+    available={v["name"] for v in pod["spec"].get("volumes",[])}; mounts=[]; exports=[]
+    for index,spec in enumerate(options.mount):
+        bits=spec.split(":");
+        if len(bits) not in (2,3) or not bits[1]: raise SystemExit(f"Invalid mount: {spec}")
+        volume,name=bits[:2]; readonly=len(bits)==3 and bits[2].lower() in ("ro","true","readonly")
+        if volume not in available: raise SystemExit(f"Pod has no volume named {volume}")
+        if not name.replace("-","").replace(".","").isalnum(): raise SystemExit(f"Invalid export name: {name}")
+        path=f"/exports/{name}"; mounts.append({"name":volume,"mountPath":path,"readOnly":readonly});exports.append((index,name,path,readonly))
+    username="admin"; password=secrets.token_urlsafe(20); access="AFS"+secrets.token_hex(9).upper(); secret=secrets.token_urlsafe(30); stop=secrets.token_urlsafe(24)
+    env=[("ADAPTERFS_STATE_DIRECTORY","/tmp/adapterfs-state"),("ADAPTERFS_AUTH_USERNAME",username),("ADAPTERFS_AUTH_PASSWORD",password),("ADAPTERFS_AUTH_S3_ACCESS_KEY",access),("ADAPTERFS_AUTH_S3_SECRET_KEY",secret),("ADAPTERFS_SESSION_STOP_TOKEN",stop),("ADAPTERFS_SESSION_DURATION_SECONDS",str(options.duration)),("ADAPTERFS_HTTP_PORT",str(options.http_port)),("ADAPTERFS_S3_PORT",str(options.s3_port)),("ADAPTERFS_SFTP_PORT",str(options.sftp_port))]
+    for index,name,path,readonly in exports: env += [(f"ADAPTERFS_EXPORTS_{index}_NAME",name),(f"ADAPTERFS_EXPORTS_{index}_PATH",path),(f"ADAPTERFS_EXPORTS_{index}_READ_ONLY",str(readonly).lower())]
+    container={"name":options.name,"image":options.image,"imagePullPolicy":"IfNotPresent","env":[{"name":k,"value":v} for k,v in env],"volumeMounts":mounts,"securityContext":{"runAsNonRoot":options.uid!=0,"runAsUser":options.uid,"runAsGroup":options.gid,"allowPrivilegeEscalation":False,"capabilities":{"drop":["ALL"]}}}
+    existing=pod["spec"].get("ephemeralContainers",[])
+    if any(c["name"]==options.name for c in existing): raise SystemExit(f"Ephemeral container {options.name} already exists; replace the pod before reusing that name")
+    patch=json.dumps({"spec":{"ephemeralContainers":[*existing,container]}})
+    kubectl(["patch","pod",options.pod,"-n",options.namespace,"--subresource=ephemeralcontainers","--type=merge","-p",patch])
+    print(f"AdapterFS attached to {options.namespace}/{options.pod} for {options.duration} seconds")
+    print(f"Web login: {username} / {password}")
+    print(f"S3 keys: {access} / {secret}")
+    print(f"Forward: kubectl -n {options.namespace} port-forward pod/{options.pod} {options.http_port}:{options.http_port} {options.s3_port}:{options.s3_port} {options.sftp_port}:{options.sftp_port}")
+    print(f"Stop: curl -X POST -H 'Authorization: Bearer {stop}' http://127.0.0.1:{options.http_port}/api/v1/session/stop")
+
+if __name__=="__main__": main()

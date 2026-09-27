@@ -1,0 +1,12 @@
+{
+  "name": "adapterfs-ui-tests",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "record-demo": "node scripts/record-demo.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "playwright": "1.63.0"
+  }
+}

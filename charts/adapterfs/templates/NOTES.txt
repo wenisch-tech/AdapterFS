@@ -1,0 +1,5 @@
+Open the UI with:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "adapterfs.fullname" . }} 8080:{{ .Values.protocols.http.port }}
+
+Read generated credentials with:
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "adapterfs.secretName" . }} -o jsonpath='{.data.password}' | base64 -d

@@ -1,0 +1,72 @@
+image:
+  repository: ghcr.io/wenisch-tech/adapterfs
+  tag: ""
+  pullPolicy: IfNotPresent
+
+deployment:
+  enabled: true
+  replicas: 1
+
+credentials:
+  existingSecret: ""
+  username: admin
+
+exports:
+  - name: files
+    path: /data
+    readOnly: false
+
+extraVolumes:
+  - name: adapterfs-data
+    emptyDir: {}
+extraVolumeMounts:
+  - name: adapterfs-data
+    mountPath: /data
+
+state:
+  persistence: true
+  existingClaim: ""
+  size: 1Gi
+  storageClass: ""
+
+protocols:
+  http: {port: 8080}
+  s3: {enabled: true, port: 9000}
+  sftp: {enabled: true, port: 2222}
+  ftp:
+    enabled: false
+    port: 2121
+    passivePorts: 30000-30009
+    externalAddress: ""
+
+service:
+  enabled: true
+  type: ClusterIP
+  selector: {}
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: adapterfs.local
+  tls: []
+
+resources:
+  requests: {cpu: 50m, memory: 192Mi}
+  limits: {memory: 768Mi}
+
+extraEnv: []
+
+podSecurityContext:
+  fsGroup: 65532
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+  capabilities: {drop: [ALL]}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

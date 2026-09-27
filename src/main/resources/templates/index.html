@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AdapterFS</title>
+  <meta name="csrf-token" th:content="${_csrf.token}"><meta name="csrf-header" th:content="${_csrf.headerName}">
+  <link rel="stylesheet" href="/assets/app.css"><script defer src="/assets/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">A</span><span>AdapterFS</span></div>
+    <nav><p class="nav-label">STORAGE</p><button th:each="item : ${exports}" class="export-link" th:data-export="${item.name}"><span class="folder-icon">▰</span><span th:text="${item.name}">files</span><span th:if="${item.readOnly}" class="tag">READ ONLY</span></button></nav>
+    <div class="sidebar-bottom"><button id="connections" class="quiet-button">⌁ <span>Connections</span></button><button id="theme" class="quiet-button">◐ <span>Appearance</span></button></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><button id="mobile-menu" aria-label="Open navigation">☰</button><div><p class="eyebrow">CONNECTED WORKSPACE</p><h1 id="export-title">Files</h1></div><div class="top-actions"><label class="search">⌕<input id="filter" placeholder="Filter files" aria-label="Filter files"></label><form method="post" action="/logout"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button class="avatar" title="Sign out">A</button></form></div></header>
+    <section class="content">
+      <div class="toolbar"><div id="breadcrumbs" class="breadcrumbs"></div><div class="actions"><button id="new-folder" class="button secondary">New folder</button><label class="button primary">Upload<input id="upload" type="file" multiple hidden></label></div></div>
+      <div id="drop-zone" class="file-panel">
+        <div id="upload-progress" class="upload-progress hidden"><span></span><div><strong>Uploading</strong><small id="upload-status"></small></div><progress id="progress" max="100" value="0"></progress></div>
+        <table><thead><tr><th data-sort="name">Name ↕</th><th data-sort="size">Size</th><th data-sort="modified">Modified</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="file-list"></tbody></table>
+        <div id="empty" class="empty hidden"><div class="empty-icon">◇</div><h2>This folder is empty</h2><p>Drop files here or create a folder to get started.</p></div>
+      </div>
+      <p id="summary" class="summary"></p>
+    </section>
+  </main>
+</div>
+<dialog id="modal"><form method="dialog"><button class="dialog-close">×</button><div id="modal-content"></div></form></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+</body></html>

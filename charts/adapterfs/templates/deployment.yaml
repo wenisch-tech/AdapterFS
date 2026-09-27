@@ -1,0 +1,36 @@
+{{- if .Values.deployment.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "adapterfs.fullname" . }}
+  labels: {{ include "adapterfs.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {{ include "adapterfs.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "adapterfs.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext: {{ toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        {{- include "adapterfs.container" . | nindent 8 }}
+      volumes:
+        - name: adapterfs-config
+          configMap: {name: {{ include "adapterfs.fullname" . }}}
+        - name: adapterfs-state
+          {{- if .Values.state.existingClaim }}
+          persistentVolumeClaim: {claimName: {{ .Values.state.existingClaim }}}
+          {{- else if .Values.state.persistence }}
+          persistentVolumeClaim: {claimName: {{ include "adapterfs.fullname" . }}}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations: {{ toYaml .Values.tolerations | nindent 8 }}
+      affinity: {{ toYaml .Values.affinity | nindent 8 }}
+{{- end }}

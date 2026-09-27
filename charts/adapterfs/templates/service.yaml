@@ -1,0 +1,22 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "adapterfs.fullname" . }}
+  labels: {{ include "adapterfs.labels" . | nindent 4 }}
+  annotations: {{ toYaml .Values.service.annotations | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector: {{ toYaml (default (include "adapterfs.selectorLabels" . | fromYaml) .Values.service.selector) | nindent 4 }}
+  ports:
+    - {name: http, port: {{ .Values.protocols.http.port }}, targetPort: http}
+    {{- if .Values.protocols.s3.enabled }}
+    - {name: s3, port: {{ .Values.protocols.s3.port }}, targetPort: s3}
+    {{- end }}
+    {{- if .Values.protocols.sftp.enabled }}
+    - {name: sftp, port: {{ .Values.protocols.sftp.port }}, targetPort: sftp}
+    {{- end }}
+    {{- if .Values.protocols.ftp.enabled }}
+    - {name: ftp, port: {{ .Values.protocols.ftp.port }}, targetPort: ftp}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,20 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "adapterfs.fullname" . }}
+  labels: {{ include "adapterfs.labels" . | nindent 4 }}
+  annotations: {{ toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: {{ include "adapterfs.fullname" . }}, port: {name: http}}}
+  tls: {{ toYaml .Values.ingress.tls | nindent 4 }}
+{{- end }}
