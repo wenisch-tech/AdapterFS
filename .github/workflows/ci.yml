@@ -45,4 +45,5 @@ jobs:
       version: ${{ needs.versioning.outputs.version }}
       tag: ${{ needs.versioning.outputs.tag }}
       changelog: ${{ needs.versioning.outputs.changelog }}
+    secrets: inherit
     permissions: {contents: write, packages: write, id-token: write}

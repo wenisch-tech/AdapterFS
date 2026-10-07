@@ -8,4 +8,4 @@ home: https://github.com/wenisch-tech/AdapterFS
 sources:
   - https://github.com/wenisch-tech/AdapterFS
 annotations:
-  org.opencontainers.image.source: https://github.com/wenisch-tech/helm-charts
+  org.opencontainers.image.source: https://github.com/wenisch-tech/AdapterFS

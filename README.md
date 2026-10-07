@@ -199,7 +199,7 @@ npx playwright install chromium
 ADAPTERFS_BASE_URL=http://localhost:8080 ADAPTERFS_USERNAME=admin ADAPTERFS_PASSWORD=... npm run record-demo
 ```
 
-GitHub Actions test every change, build amd64/arm64 JVM images, run blocking protocol smoke tests and Trivy scans, generate SBOM/provenance artifacts, and publish the chart to `oci://ghcr.io/wenisch-tech/helm-charts/adapterfs`. The native profile and Dockerfile remain available for manual builds but are not part of the CI or release workflow. The workflow needs repository `contents: write`, `packages: write`, `id-token: write`, and `attestations: write`; organization package creation must permit this repository.
+GitHub Actions test every change, build amd64/arm64 JVM images, run blocking protocol smoke tests and Trivy scans, generate SBOM/provenance artifacts, publish the chart archive to [`wenisch-tech/helm-charts`](https://github.com/wenisch-tech/helm-charts/tree/main/adapterfs), and push the OCI chart to `oci://ghcr.io/wenisch-tech/helm-charts/adapterfs`. OCI metadata links the package back to this source repository. The native profile and Dockerfile remain available for manual builds but are not part of the CI or release workflow. The workflow needs repository `contents: write`, `packages: write`, `id-token: write`, and `attestations: write`; `HELM_CHARTS_TOKEN` (or the legacy `GITHUBTOKEN`) must additionally have `Contents: write` access to `wenisch-tech/helm-charts`; organization package creation must permit this repository.
 
 ## License
 

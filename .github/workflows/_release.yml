@@ -8,6 +8,10 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v7
         with: {fetch-depth: 0}
@@ -34,6 +38,27 @@ jobs:
           mkdir -p release
           cp target/adapterfs.jar release/adapterfs-${{ inputs.version }}.jar
           helm package charts/adapterfs --version ${{ inputs.version }} --app-version ${{ inputs.version }} -d release
+      - name: Publish chart archive to charts repository
+        env:
+          # This fine-grained token needs Contents: write access to wenisch-tech/helm-charts.
+          # GITHUB_TOKEN is scoped to this repository and cannot write to a different repository.
+          GH_TOKEN: ${{ secrets.HELM_CHARTS_TOKEN || secrets.GITHUBTOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || {
+            echo "Set HELM_CHARTS_TOKEN (or the legacy GITHUBTOKEN) with Contents: write for wenisch-tech/helm-charts." >&2
+            exit 1
+          }
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/wenisch-tech/helm-charts.git" charts-repo
+          mkdir -p charts-repo/adapterfs
+          cp release/adapterfs-${{ inputs.version }}.tgz charts-repo/adapterfs/
+          cd charts-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add adapterfs/adapterfs-${{ inputs.version }}.tgz
+          git commit -m "Add adapterfs helm chart in version ${{ inputs.version }}" || exit 0
+          git push origin main
       - name: Publish chart to GHCR OCI
         run: |
           echo '${{ secrets.GITHUB_TOKEN }}' | helm registry login ghcr.io -u '${{ github.actor }}' --password-stdin
