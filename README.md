@@ -2,6 +2,7 @@
 
 AdapterFS turns a mounted directory into a small, self-contained file gateway. Run it beside an existing application container and the same files become available through a browser, WebDAV, SFTP, FTP, and an S3-compatible API.
 
+
 ![AdapterFS file manager](docs/adapterfs-demo.gif)
 
 ## What it provides
